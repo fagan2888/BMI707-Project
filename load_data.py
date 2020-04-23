@@ -74,7 +74,7 @@ def load_data(df, image_size=(256,256)):
         # Resize to square
         im = im.resize(image_size)
         
-        # Convert to array and append
+        # Convert to array, normalize and append
         im = np.array(im)
         images.append(im / 255)
         
