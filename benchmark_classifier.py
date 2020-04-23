@@ -24,17 +24,17 @@ def create_model():
     model.add(Conv2D(32, (3, 3), padding='same', input_shape=(256, 256, 3)))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    # model.add(Dropout(0.25))
 
     model.add(Conv2D(64, (3, 3), padding='same'))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    # model.add(Dropout(0.25))
 
     model.add(Flatten())
-    model.add(Dense(256))
+    model.add(Dense(128))
     model.add(Activation('relu'))
-    model.add(Dropout(0.5))
+    # model.add(Dropout(0.5))
     model.add(Dense(1, activation='sigmoid'))
 
     return model
@@ -69,6 +69,11 @@ def train_benchmark(model, X_train, X_val, y_train, y_val, epochs=12,
 
     save : boolean
         Whether or not to save model.
+    
+    Returns
+    -------
+    model : Keras Sequential Model
+        A trained Keras model. 
     """    
     # Compile model
     model.compile(loss='binary_crossentropy', optimizer='adam', 
@@ -78,17 +83,13 @@ def train_benchmark(model, X_train, X_val, y_train, y_val, epochs=12,
     model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=epochs, 
               batch_size=batch_size, verbose=1)
 
-    # # Evaluation metrics
-    # scores = model.evaluate(X_val, y_val, verbose=0)
-    # print(scores)
-    # print(y_val)
-    # print(model.predict_classes(X_val, verbose=1))
-
     # Save model with timestamp as name
     if save:
         now = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         filepath = 'model_bench_' + now + '.h5'
         model.save(filepath)
+
+    return model
 
 
 if __name__ == '__main__':
@@ -98,7 +99,7 @@ if __name__ == '__main__':
 
     model = create_model()
     train_benchmark(model, images_train, images_val, labels_train, labels_val, 
-                    epochs=1, batch_size=32, save=False)
+                    epochs=12, batch_size=32, save=False)
 
     # Load saved model
     # model = load_model('model_bench_2020_04_22_22_58_23.h5')    

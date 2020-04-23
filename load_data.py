@@ -76,7 +76,7 @@ def load_data(df, image_size=(256,256)):
         
         # Convert to array and append
         im = np.array(im)
-        images.append(im)
+        images.append(im / 255)
         
         label = 1 if (row['finding'] == 'COVID-19' or row['finding'] == 'COVID-19, ARDS') else 0
         labels.append(label)
