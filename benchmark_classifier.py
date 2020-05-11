@@ -5,10 +5,12 @@
 
 import datetime
 from load_data import load_data, load_metadata, data_generator_from_dataframe, ValidImageDataGenerator
+from grad_cam import grad_cam
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Flatten, Activation
+from keras.layers import Dense, Dropout, Flatten, Activation, GlobalAveragePooling2D
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
+from sklearn.metrics import roc_auc_score
 
 
 def create_model():
@@ -21,19 +23,20 @@ def create_model():
     """
 
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), padding='same', input_shape=(256, 256, 3)))
+    model.add(Conv2D(32, (3, 3), padding='same', input_shape=(224, 224, 3)))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     # model.add(Dropout(0.25))
 
     model.add(Conv2D(64, (3, 3), padding='same'))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    # model.add(MaxPooling2D(pool_size=(2, 2)))
     # model.add(Dropout(0.25))
+    model.add(GlobalAveragePooling2D())
 
-    model.add(Flatten())
-    model.add(Dense(128))
-    model.add(Activation('relu'))
+    # model.add(Flatten())
+    # model.add(Dense(128))
+    # model.add(Activation('relu'))
     # model.add(Dropout(0.5))
     model.add(Dense(1, activation='sigmoid'))
 
@@ -41,7 +44,7 @@ def create_model():
 
 
 def train_benchmark(model, X_train, X_val, y_train, y_val, epochs=12, 
-                    batch_size=12, save=False):
+                    batch_size=16, save=False):
     """A function to train a benchmark CNN in Keras.
     
     Parameters
@@ -137,7 +140,7 @@ def train_augmented_benchmark(model, train_generator, validation_generator,
     # Save model with timestamp as name
     if save:
         now = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        filepath = 'model_aug_bench_' + now + '.h5'
+        filepath = 'models/model_aug_bench_' + now + '.h5'
         model.save(filepath)
 
     return model
@@ -146,25 +149,33 @@ def train_augmented_benchmark(model, train_generator, validation_generator,
 if __name__ == '__main__':
     df_train, df_val = load_metadata()
     # images_train, labels_train = load_data(df_train)
-    # images_val, labels_val = load_data(df_val)
+    images_val, labels_val = load_data(df_val)
 
     # model = create_model()
     # train_benchmark(model, images_train, images_val, labels_train, labels_val, 
-    #                 epochs=12, batch_size=32, save=False)
+    #                 epochs=12, batch_size=16, save=False)
 
     train_datagen = ImageDataGenerator(rescale=1./255, horizontal_flip=True,
-                                         width_shift_range=1)
+                                         width_shift_range=1,
+                                         brightness_range=[0.5, 1.2])
 
     train_generator = data_generator_from_dataframe(train_datagen, df_train)
 
     validation_generator = data_generator_from_dataframe(ValidImageDataGenerator(), df_val)
 
     model = create_model()
-    train_augmented_benchmark(model, train_generator, validation_generator,
-                              epochs=12, steps_per_epoch=12,
-                              save=False)
+    model = train_augmented_benchmark(model, train_generator, validation_generator,
+                              epochs=5, steps_per_epoch=125,
+                              save=True)
 
     # Load saved model
-    # model = load_model('model_bench_2020_04_22_22_58_23.h5')    
+    # model = load_model('models/model_aug_bench_2020_05_07_17_40_46.h5')    
     # print(model.summary())
     # print(model.predict_classes(images_val))
+    
+    y_probs = model.predict(images_val)
+    y_pred = [1 if p > 0.5 else 0 for p in y_probs]
+    print(labels_val)
+    print(y_pred)
+    # print(y_probs.T)
+    print(roc_auc_score(labels_val, y_probs))

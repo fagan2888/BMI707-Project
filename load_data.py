@@ -5,7 +5,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 from PIL import Image
 
@@ -38,7 +38,7 @@ def load_metadata(file_name='metadata.csv'):
     return df_train, df_val
 
 
-def load_data(df, image_size=(256,256)):
+def load_data(df, image_size=(224, 224)):
     """A function to load and process images from metadata dataframes, into 
     NumPy arrays for use with Keras model.
 
@@ -69,7 +69,7 @@ def load_data(df, image_size=(256,256)):
         # Open image from path
         im = Image.open('images/' + im_path)
         
-        # Convert to grayscale
+        # Convert to rgb
         im = im.convert('RGB')
 
         # Resize to square
@@ -119,7 +119,8 @@ def ValidImageDataGenerator():
     return ImageDataGenerator(rescale=1./255)
 
 
-def data_generator_from_dataframe(datagen, df, image_size=(256, 256), batch_size=32):
+def data_generator_from_dataframe(datagen, df, image_size=(224, 224), batch_size=16,
+                                  color_mode='rgb'):
     """A function to process metadata dataframes and return generators for
     generating augmented training and validation data.
     
@@ -137,6 +138,9 @@ def data_generator_from_dataframe(datagen, df, image_size=(256, 256), batch_size
     batch_size : int
         Batch size to use when fitting.
 
+    color_mode : str {'rgb', 'grayscale', "rgba"}
+        Number of channels in generated data.
+
     Returns
     -------
     generator : Keras ImageDataGenerator object
@@ -153,27 +157,30 @@ def data_generator_from_dataframe(datagen, df, image_size=(256, 256), batch_size
         y_col="label",
         target_size=image_size,
         batch_size=batch_size,
-        class_mode='raw')
+        class_mode='raw',
+        color_mode=color_mode)
 
     return generator
 
 
 if __name__ == '__main__':
     df_train, df_val = load_metadata()
+    print(list(df_train['filename']))
 
-    # images_train, labels_train = load_data(df_train)
-    # images_val, labels_val = load_data(df_val)
+    images_train, labels_train = load_data(df_train)
+    images_val, labels_val = load_data(df_val)
 
     train_generator = ImageDataGenerator(rescale=1./255, horizontal_flip=True,
-                                         width_shift_range=100)
+                                         width_shift_range=1,
+                                         brightness_range=[0.5, 1.2])
 
     train_generator = data_generator_from_dataframe(train_generator, df_train)
 
     validation_generator = data_generator_from_dataframe(ValidImageDataGenerator(), df_val)
 
-    # Generate augmented images
-    for image_batch, label_batch in train_generator:
-        for img, label in zip(image_batch, label_batch):
-            print('Label =', label)
-            plt.imshow(img)
-            plt.show()
+    # # Generate augmented images
+    # for image_batch, label_batch in train_generator:
+    #     for img, label in zip(image_batch, label_batch):
+    #         print('Label =', label)
+    #         plt.imshow(img)
+    #         plt.show()
